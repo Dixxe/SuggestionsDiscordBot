@@ -84,7 +84,7 @@ async def help(slash_inter):
     emb.add_field(name='/downvote [эмодзи]', value='Привязать эмодзи отвечающий за отрицательную реакцию', inline=False)
     emb.add_field(name='/set [канал]', value='Привязанный канал где будут предложения.')
     emb.add_field(name='/suggestions', value='Показать все предложения от пользователей.', inline=False)
-    emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
+    emb.set_author(name='Бусти создателя', url='https://boosty.to/dixxe')
     await slash_inter.edit_original_response(embed=emb)
 
 @bot.command()
@@ -148,7 +148,7 @@ async def suggested(slash_inter):
     try:
         pair = []
         emb = disnake.Embed(title='Топ предложений:', color=randint(1, 16777216))
-        emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
+        emb.set_author(name='Бусти создателя', url='https://boosty.to/dixxe')
         for user in suggestions.keys():
             for user_suggestion in range(len(suggestions[user])):
                 suggestions_dict = suggestions[user][user_suggestion]
