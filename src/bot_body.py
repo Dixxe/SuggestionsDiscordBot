@@ -17,7 +17,7 @@ activity = disnake.Activity(
     name="Made by dixxe",
     type=disnake.ActivityType.listening)
 ################
-global service
+global service, suggestions
 service = ['⬆️', '⬇️', 123] # [0] - upvote emoji, [1] - downvote emoji, [2] - linked channel id
 
 # {u:{[s:[u,d]]}}
@@ -35,8 +35,9 @@ suggestions = {} # {'user_nick1' : [{'suggestion1' : [amount_upvotes, amount_dow
 #
 
 ##--сохранение--##
-def exportData(bufer, warned, bjstats):
-    data = {'suggestions': suggestions}
+def exportData(suggestions, service):
+    data = {'suggestions': suggestions,
+            'service'    : service    }
     with open('value.json', 'w') as save:
         json.dump(data, save)
 ##--сохранение--##
@@ -46,12 +47,14 @@ def importData():
     with open('value.json', 'r') as save:
         data = json.load(save)
         suggestions = data['suggestions']
-    return suggestions
+        service = data['service']
+    return suggestions, service
 ##--загрузка--##
 
 ##--очистка--##
 def flushs():
-    data = {'suggestions': {}}
+    data = {'suggestions': {},
+            'service': ['⬆️', '⬇️', 123]}
     with open('value.json', 'w') as save:
         json.dump(data, save)
 
@@ -63,11 +66,13 @@ async def on_ready():
 
     try: ## проверяю на наличие файлика и обьявляю переменные
         importData()
-        global suggestions
-        suggestions = importData()
+        global suggestions, service
+        suggestions, service = importData()
         print(f'Loading succesful. {importData()}')
+        save.start()
     except:
         print('No saves found')
+        save.start()
 
 @bot.slash_command(description='Все описание всех функций бота.')
 async def help(slash_inter):
@@ -131,16 +136,47 @@ async def set(slash_inter, channel : disnake.TextChannel):
     await slash_inter.edit_original_response(f"Канал {channel.name} привязан.")
     await announce(service[2])
 
+@bot.slash_command(description='Показать все предложения от пользователей.')
+async def suggested(slash_inter):
+    await slash_inter.response.defer()
+    msges = {} # {msg: [up, down]}
+    for user in suggestions.keys():
+        for user_suggestion in range(len(suggestions[user])):
+            suggestions_dict = suggestions[user][user_suggestion]
+            for suggestion in suggestions_dict.keys():
+                msg = bot.get_message(suggestion)
+                upvotes = suggestions_dict[suggestion][0]
+                downvotes = suggestions_dict[suggestion][1]
+                msges[msg.ctx] = [upvotes, downvotes]
+    await slash_inter.edit_original_response(msges)
 
 async def announce(channel_id):
     channel = bot.get_channel(channel_id)
     await channel.send('Теперь вы можете использовать команду >suggest здесь.')
     
+########################
+@tasks.loop(minutes=10)
+async def save():
+    exportData(suggestions, service)
+    
+# {u:{[s:[u,d]]}}
+@tasks.loop(seconds=5)
+async def check():
+
+    for user in suggestions.keys():
+        for user_suggestion in range(len(suggestions[user])):
+            suggestions_dict = suggestions[user][user_suggestion]
+            for suggestion in suggestions_dict.keys():
+                msg = bot.get_message(suggestion)
+                for reaction in msg.reactions:
+                    print(reaction)
+                    print(service)
+                    if(reaction == service[0]):
+                        suggestions_dict[suggestion][0] += 1
+                    if(reaction == service[1]):
+                        suggestions_dict[suggestion][1] += 1
+
+
 with open('token.txt', 'r') as file:
     token = file.read()
-
-
-
-
-
 bot.run(token)
