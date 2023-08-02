@@ -79,21 +79,27 @@ async def help(slash_inter):
     emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
     await slash_inter.edit_original_response(embed=emb)
 
-@bot.slash_command(description='Выскажите ваши мысли')
-async def suggest(slash_inter, suggestion : str):
-    await slash_inter.response.defer()
-    if slash_inter.author.name in suggestions:
-        list = suggestions[slash_inter.author.name]
-        list.append({suggestion : [0, 0]})
+@bot.command()
+async def suggest(ctx):
+    if ctx.author.name in suggestions:
+        list = suggestions[ctx.author.name]
+        list.append({ctx.message.id : [0, 0]})
     else:
-        suggestions[slash_inter.author.name] = [{suggestion : [0, 0]}]
+        suggestions[ctx.author.name] = [{ctx.message.id : [0, 0]}]
     print(suggestions)
 
 @bot.slash_command(description='Привязать эмодзи отвечающий за положительную реакцию')
-async def upvote(slash_inter, emoji):
+async def upvote(slash_inter, emoji : disnake.Emoji):
     await slash_inter.response.defer()
     service[0] = emoji
     await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как положительная реакция')
+    print(service)
+
+@bot.slash_command(description='Привязать эмодзи отвечающий за отрицательную реакцию')
+async def downvote(slash_inter, emoji: disnake.Emoji):
+    await slash_inter.response.defer()
+    service[1] = emoji
+    await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как отрицательная реакция')
     print(service)
     
 with open('token.txt', 'r') as file:
