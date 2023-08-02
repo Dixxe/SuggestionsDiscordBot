@@ -1,5 +1,5 @@
 import disnake
-from disnake.ext import commands
+from disnake.ext import commands, tasks
 import json
 
 ################
@@ -16,6 +16,9 @@ activity = disnake.Activity(
     name="Made by dixxe",
     type=disnake.ActivityType.listening)
 ################
+global service
+service = [0, 1] # [0] - upvote emoji, [1] - downvote emoji
+
 # {u:{[s:[u,d]]}}
 suggestions = {} # {'user_nick1' : [{'suggestion1' : [amount_upvotes, amount_downvotes]}, {'suggestion2' : [amount_upvotes, amount_downvotes]}], 'user_nick1' : {'suggestion1' : [amount_upvotes, amount_downvotes]}, {'suggestion2' : [amount_upvotes, amount_downvotes]}}
  # for creation:      suggestions['user_nick1'] = [{'suggestion' : [0, 0]}]
@@ -70,7 +73,6 @@ async def help(slash_inter):
     await slash_inter.response.defer()
     emb = disnake.Embed(title='Все команды бота:', color=16753920)
     emb.add_field(name='/suggest [предложение]', value='Выскажите ваши мысли')
-    emb.add_field(name='/set [текстовый канал]', value='Привязать канал где будет сбор предложений.', inline=False)
     emb.add_field(name='/upvote [эмодзи]', value='Привязать эмодзи отвечающий за положительную реакцию', inline=False)
     emb.add_field(name='/downvote [эмодзи]', value='Привязать эмодзи отвечающий за отрицательную реакцию', inline=False)
     emb.add_field(name='/suggestions', value='Показать все предложения от пользователей.', inline=False)
@@ -80,13 +82,20 @@ async def help(slash_inter):
 @bot.slash_command(description='Выскажите ваши мысли')
 async def suggest(slash_inter, suggestion : str):
     await slash_inter.response.defer()
-    if slash_inter.author.nick in suggestions:
-        list = suggestions[slash_inter.author.nick]
+    if slash_inter.author.name in suggestions:
+        list = suggestions[slash_inter.author.name]
         list.append({suggestion : [0, 0]})
     else:
         suggestions[slash_inter.author.name] = [{suggestion : [0, 0]}]
     print(suggestions)
 
+@bot.slash_command(description='Привязать эмодзи отвечающий за положительную реакцию')
+async def upvote(slash_inter, emoji):
+    await slash_inter.response.defer()
+    service[0] = emoji
+    await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как положительная реакция')
+    print(service)
+    
 with open('token.txt', 'r') as file:
     token = file.read()
 
