@@ -114,71 +114,89 @@ async def suggest(ctx):
 @bot.slash_command(description='Привязать эмодзи отвечающий за положительную реакцию')
 async def upvote(slash_inter, emoji):
     await slash_inter.response.defer(ephemeral=True)
-    try: service[0] = emoji.id
-    except Exception: pass
-    service[0] = emoji
-    await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как положительная реакция')
+    try:
+        try: service[0] = emoji.id
+        except Exception: pass
+        service[0] = emoji
+        await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как положительная реакция')
+    except Exception as e: await slash_inter.edit_original_response(f"Что-то пошло не так, отправьте этот код ошибки мне в телеграм:\n```{e}```")
 
 
 @bot.slash_command(description='Привязать эмодзи отвечающий за отрицательную реакцию')
 async def downvote(slash_inter, emoji):
     await slash_inter.response.defer(ephemeral=True)
-    try: service[1] = emoji.id
-    except Exception: pass
-    service[1] = emoji
-    await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как отрицательная реакция')
+    try:
+        try: service[1] = emoji.id
+        except Exception: pass
+        service[1] = emoji
+        await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как отрицательная реакция')
+    except Exception as e: await slash_inter.edit_original_response(f"Что-то пошло не так, отправьте этот код ошибки мне в телеграм:\n```{e}```")
 
 
 @bot.slash_command(description='Привязанный канал где будут предложения.')
 async def set(slash_inter, channel : disnake.TextChannel):
     await slash_inter.response.defer(ephemeral=True)
-    service[2] = channel.id
-    await slash_inter.edit_original_response(f"Канал {channel.name} привязан.")
-    await announce(service[2])
+    try:
+        service[2] = channel.id
+        await slash_inter.edit_original_response(f"Канал {channel.name} привязан.")
+        await announce(service[2])
+    except Exception as e: await slash_inter.edit_original_response(f"Что-то пошло не так, отправьте этот код ошибки мне в телеграм:\n```{e}```")
 
 @bot.slash_command(description='Показать все предложения от пользователей.')
 async def suggested(slash_inter):
     await slash_inter.response.defer()
-    pair = []
-    emb = disnake.Embed(title='Топ предложений:', color=randint(1, 16777216))
-    emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
-    for user in suggestions.keys():
-        for user_suggestion in range(len(suggestions[user])):
-            suggestions_dict = suggestions[user][user_suggestion]
-            for suggestion in suggestions_dict.keys():
-                msg = bot.get_message(suggestion)
-                upvotes = suggestions_dict[suggestion][0]
-                downvotes = suggestions_dict[suggestion][1]
-                procent = upvotes - downvotes
-                pair.append((msg.content.split()[1:], procent))
-    sorted_suggestions = sorted(pair, key=lambda x: x[1], reverse=True)
-    for i, (smsg, sprocent) in enumerate(sorted_suggestions[:10]):
-        emb.add_field(name=f"{i+1} место. Разность оценки: {sprocent}", value=smsg, inline=True)
-    await slash_inter.edit_original_response(embed=emb)
-
+    try:
+        pair = []
+        emb = disnake.Embed(title='Топ предложений:', color=randint(1, 16777216))
+        emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
+        for user in suggestions.keys():
+            for user_suggestion in range(len(suggestions[user])):
+                suggestions_dict = suggestions[user][user_suggestion]
+                for suggestion in suggestions_dict.keys():
+                    msg = bot.get_message(suggestion)
+                    upvotes = suggestions_dict[suggestion][0]
+                    downvotes = suggestions_dict[suggestion][1]
+                    procent = upvotes - downvotes
+                    pair.append((msg.content, procent))
+        sorted_suggestions = sorted(pair, key=lambda x: x[1], reverse=True)
+        for i, (smsg, sprocent) in enumerate(sorted_suggestions[:10]):
+            emb.add_field(name=f"{i+1} место. Разность оценки: {sprocent}", value=' '.join(smsg.split()[1:]), inline=True)
+        await slash_inter.edit_original_response(embed=emb)
+    except Exception as e: await slash_inter.edit_original_response(f"Что-то пошло не так, отправьте этот код ошибки мне в телеграм:\n```{e}```")
 async def announce(channel_id):
     channel = bot.get_channel(channel_id)
     await channel.send('Теперь вы можете использовать команду >suggest здесь.')
-    
+
+@bot.slash_command(description='В случай ошибок (СТИРАНИЕ ИНФОРМАЦИИ!)')
+async def flush(slash_inter):
+    await slash_inter.response.defer()
+    flushs()
+    global service, suggestions
+    suggestions = {}
+    service = ['⬆️', '⬇️', 123]
+    await slash_inter.edit_original_response('Данные удалены')
+
 ########################
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=5)
 async def save():
     exportData(suggestions, service)
     
 # {u:{[s:[u,d]]}}
-@tasks.loop(seconds=5)
+@tasks.loop(minutes=1)
 async def check():
-
-    for user in suggestions.keys():
-        for user_suggestion in range(len(suggestions[user])):
-            suggestions_dict = suggestions[user][user_suggestion]
-            for suggestion in suggestions_dict.keys():
-                msg = bot.get_message(suggestion)
-                for reaction in range(len(msg.reactions)):
-                    if(str(msg.reactions[reaction]) == str(service[0])):
-                        suggestions_dict[suggestion][0] = msg.reactions[reaction].count
-                    if(str(msg.reactions[reaction]) == str(service[1])):
-                        suggestions_dict[suggestion][1] = msg.reactions[reaction].count
+    try:
+        for user in suggestions.keys():
+            for user_suggestion in range(len(suggestions[user])):
+                suggestions_dict = suggestions[user][user_suggestion]
+                for suggestion in suggestions_dict.keys():
+                    msg = bot.get_message(suggestion)
+                    for reaction in range(len(msg.reactions)):
+                        if(str(msg.reactions[reaction]) == str(service[0])):
+                            suggestions_dict[suggestion][0] = msg.reactions[reaction].count
+                        if(str(msg.reactions[reaction]) == str(service[1])):
+                            suggestions_dict[suggestion][1] = msg.reactions[reaction].count
+    except Exception as e:
+        print(e)
 
 
 with open('token.txt', 'r') as file:
