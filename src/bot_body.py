@@ -63,7 +63,7 @@ bot = commands.Bot(command_prefix='>', intents=intents, help_command=None, activ
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
-
+    check.start()
     try: ## проверяю на наличие файлика и обьявляю переменные
         importData()
         global suggestions, service
@@ -147,7 +147,7 @@ async def suggested(slash_inter):
                 msg = bot.get_message(suggestion)
                 upvotes = suggestions_dict[suggestion][0]
                 downvotes = suggestions_dict[suggestion][1]
-                msges[msg.ctx] = [upvotes, downvotes]
+                msges[msg.content] = [upvotes, downvotes]
     await slash_inter.edit_original_response(msges)
 
 async def announce(channel_id):
@@ -168,13 +168,14 @@ async def check():
             suggestions_dict = suggestions[user][user_suggestion]
             for suggestion in suggestions_dict.keys():
                 msg = bot.get_message(suggestion)
-                for reaction in msg.reactions:
-                    print(reaction)
-                    print(service)
-                    if(reaction == service[0]):
-                        suggestions_dict[suggestion][0] += 1
-                    if(reaction == service[1]):
-                        suggestions_dict[suggestion][1] += 1
+                for reaction in range(len(msg.reactions)):
+                    print(str(msg.reactions[reaction]))
+                    if(str(msg.reactions[reaction]) == str(service[0])):
+                        print('up')
+                        suggestions_dict[suggestion][0] = msg.reactions[reaction].count
+                    if(str(msg.reactions[reaction]) == str(service[1])):
+                        print('down')
+                        suggestions_dict[suggestion][1] = msg.reactions[reaction].count
 
 
 with open('token.txt', 'r') as file:
