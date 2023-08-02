@@ -150,10 +150,10 @@ async def suggested(slash_inter):
                 upvotes = suggestions_dict[suggestion][0]
                 downvotes = suggestions_dict[suggestion][1]
                 procent = upvotes - downvotes
-                pair.append((msg.content.split(' ')[0], procent))
+                pair.append((msg.content.split()[1:], procent))
     sorted_suggestions = sorted(pair, key=lambda x: x[1], reverse=True)
     for i, (smsg, sprocent) in enumerate(sorted_suggestions[:10]):
-        emb.add_field(name=f"{i+1} место. Разность оценки: {sprocent}", value=smsg, inline=False)
+        emb.add_field(name=f"{i+1} место. Разность оценки: {sprocent}", value=smsg, inline=True)
     await slash_inter.edit_original_response(embed=emb)
 
 async def announce(channel_id):
