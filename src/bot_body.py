@@ -1,5 +1,6 @@
 import disnake
 from disnake.ext import commands, tasks
+from asyncio import sleep
 import json
 
 ################
@@ -17,7 +18,7 @@ activity = disnake.Activity(
     type=disnake.ActivityType.listening)
 ################
 global service
-service = [0, 1] # [0] - upvote emoji, [1] - downvote emoji
+service = ['⬆️', '⬇️', 123] # [0] - upvote emoji, [1] - downvote emoji, [2] - linked channel id
 
 # {u:{[s:[u,d]]}}
 suggestions = {} # {'user_nick1' : [{'suggestion1' : [amount_upvotes, amount_downvotes]}, {'suggestion2' : [amount_upvotes, amount_downvotes]}], 'user_nick1' : {'suggestion1' : [amount_upvotes, amount_downvotes]}, {'suggestion2' : [amount_upvotes, amount_downvotes]}}
@@ -72,37 +73,74 @@ async def on_ready():
 async def help(slash_inter):
     await slash_inter.response.defer()
     emb = disnake.Embed(title='Все команды бота:', color=16753920)
-    emb.add_field(name='/suggest [предложение]', value='Выскажите ваши мысли')
+    emb.add_field(name='>suggest [предложение]', value='Выскажите ваши мысли')
     emb.add_field(name='/upvote [эмодзи]', value='Привязать эмодзи отвечающий за положительную реакцию', inline=False)
     emb.add_field(name='/downvote [эмодзи]', value='Привязать эмодзи отвечающий за отрицательную реакцию', inline=False)
+    emb.add_field(name='/set [канал]', value='Привязанный канал где будут предложения.')
     emb.add_field(name='/suggestions', value='Показать все предложения от пользователей.', inline=False)
     emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
     await slash_inter.edit_original_response(embed=emb)
 
 @bot.command()
 async def suggest(ctx):
-    if ctx.author.name in suggestions:
-        list = suggestions[ctx.author.name]
-        list.append({ctx.message.id : [0, 0]})
+    if (ctx.channel.id == service[2]):
+        if (ctx.author.name in suggestions):
+            list = suggestions[ctx.author.name]
+            list.append({ctx.message.id : [0, 0]})
+        else:
+            suggestions[ctx.author.name] = [{ctx.message.id : [0, 0]}]
+        try:
+            await ctx.message.add_reaction(service[0])
+            await ctx.message.add_reaction(service[1])
+        except Exception:
+            try: 
+                upvote = bot.get_emoji(service[0])
+                await ctx.message.add_reaction(upvote)
+            except Exception: pass
+            try: 
+                downvote = bot.get_emoji(service[1])
+                await ctx.message.add_reaction(downvote)
+            except Exception:pass
+            
+        print(suggestions)
     else:
-        suggestions[ctx.author.name] = [{ctx.message.id : [0, 0]}]
-    print(suggestions)
+        await ctx.message.delete()
 
 @bot.slash_command(description='Привязать эмодзи отвечающий за положительную реакцию')
-async def upvote(slash_inter, emoji : disnake.Emoji):
-    await slash_inter.response.defer()
+async def upvote(slash_inter, emoji):
+    await slash_inter.response.defer(ephemeral=True)
+    try: service[0] = emoji.id
+    except Exception: pass
     service[0] = emoji
     await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как положительная реакция')
-    print(service)
+
 
 @bot.slash_command(description='Привязать эмодзи отвечающий за отрицательную реакцию')
-async def downvote(slash_inter, emoji: disnake.Emoji):
-    await slash_inter.response.defer()
+async def downvote(slash_inter, emoji):
+    await slash_inter.response.defer(ephemeral=True)
+    try: service[1] = emoji.id
+    except Exception: pass
     service[1] = emoji
     await slash_inter.edit_original_response(f'Эмодзи {emoji}, привязан как отрицательная реакция')
-    print(service)
+
+
+@bot.slash_command(description='Привязанный канал где будут предложения.')
+async def set(slash_inter, channel : disnake.TextChannel):
+    await slash_inter.response.defer(ephemeral=True)
+    service[2] = channel.id
+    await slash_inter.edit_original_response(f"Канал {channel.name} привязан.")
+    await announce(service[2])
+
+
+async def announce(channel_id):
+    channel = bot.get_channel(channel_id)
+    await channel.send('Теперь вы можете использовать команду >suggest здесь.')
     
 with open('token.txt', 'r') as file:
     token = file.read()
+
+
+
+
 
 bot.run(token)
