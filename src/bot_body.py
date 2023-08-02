@@ -2,6 +2,7 @@ import disnake
 from disnake.ext import commands, tasks
 from asyncio import sleep
 import json
+from random import randint
 
 ################
 intents = disnake.Intents.default()
@@ -107,7 +108,6 @@ async def suggest(ctx):
                 await ctx.message.add_reaction(downvote)
             except Exception:pass
             
-        print(suggestions)
     else:
         await ctx.message.delete()
 
@@ -139,7 +139,9 @@ async def set(slash_inter, channel : disnake.TextChannel):
 @bot.slash_command(description='Показать все предложения от пользователей.')
 async def suggested(slash_inter):
     await slash_inter.response.defer()
-    msges = {} # {msg: [up, down]}
+    pair = []
+    emb = disnake.Embed(title='Топ предложений:', color=randint(1, 16777216))
+    emb.set_author(name='Телеграм канал создателя', url='https://t.me/+ok3zStfHZsdjMTQy')
     for user in suggestions.keys():
         for user_suggestion in range(len(suggestions[user])):
             suggestions_dict = suggestions[user][user_suggestion]
@@ -147,8 +149,12 @@ async def suggested(slash_inter):
                 msg = bot.get_message(suggestion)
                 upvotes = suggestions_dict[suggestion][0]
                 downvotes = suggestions_dict[suggestion][1]
-                msges[msg.content] = [upvotes, downvotes]
-    await slash_inter.edit_original_response(msges)
+                procent = upvotes - downvotes
+                pair.append((msg.content.split(' ')[0], procent))
+    sorted_suggestions = sorted(pair, key=lambda x: x[1], reverse=True)
+    for i, (smsg, sprocent) in enumerate(sorted_suggestions[:10]):
+        emb.add_field(name=f"{i+1} место. Разность оценки: {sprocent}", value=smsg, inline=False)
+    await slash_inter.edit_original_response(embed=emb)
 
 async def announce(channel_id):
     channel = bot.get_channel(channel_id)
@@ -169,12 +175,9 @@ async def check():
             for suggestion in suggestions_dict.keys():
                 msg = bot.get_message(suggestion)
                 for reaction in range(len(msg.reactions)):
-                    print(str(msg.reactions[reaction]))
                     if(str(msg.reactions[reaction]) == str(service[0])):
-                        print('up')
                         suggestions_dict[suggestion][0] = msg.reactions[reaction].count
                     if(str(msg.reactions[reaction]) == str(service[1])):
-                        print('down')
                         suggestions_dict[suggestion][1] = msg.reactions[reaction].count
 
 
